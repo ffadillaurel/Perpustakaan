@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id        Int      @id @default(autoincrement())
+  nis       String   @unique
+  name      String
+  email     String?  @unique
+  kelas     String
+  jurusan   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  peminjaman Peminjaman[]
+  users      User[]
+}
+
+model Walas {
+  id_walas   Int    @id @default(autoincrement())
+  nama_walas String
+  no_tlp     String
+  alamat     String
+}
+
+model Book {
+  id        Int      @id @default(autoincrement())
+  title     String
+  author    String
+  year      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  peminjaman Peminjaman[]
+}
+
+model Peminjaman {
+  id            Int              @id @default(autoincrement())
+  studentId     Int
+  bookId        Int
+  tanggalPinjam DateTime         @default(now())
+  status        StatusPeminjaman @default(DIPINJAM)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  book    Book    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  pengembalian Pengembalian? // ⬅️ RELASI BARU
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([bookId])
+}
+
+model Pengembalian {
+  id             Int      @id @default(autoincrement())
+  peminjamanId   Int      @unique
+  tanggalKembali DateTime @default(now())
+
+  peminjaman Peminjaman @relation(fields: [peminjamanId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([peminjamanId])
+}
+
+enum StatusPeminjaman {
+  DIPINJAM
+  SELESAI
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  username String   @unique
+  password String
+  role     UserRole
+
+  studentId Int?
+  student   Student? @relation(fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum UserRole {
+  ADMIN
+  PETUGAS
+  MEMBER
+}
