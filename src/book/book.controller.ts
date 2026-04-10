@@ -13,13 +13,14 @@ import { UserRole } from '@prisma/client';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('Books')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('book')
+// 💡 @UseGuards(JwtAuthGuard) DIHAPUS DARI SINI supaya tidak mengunci semua method
 export class BookController {
   constructor(private readonly bookService: BooksService) { }
 
-  @UseGuards(RolesGuard)
+  // 🔒 HANYA ADMIN & PETUGAS (WAJIB LOGIN)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.PETUGAS)
   @Post()
   @ApiOperation({ summary: 'Menambahkan buku (ADMIN & PETUGAS)' })
@@ -27,11 +28,11 @@ export class BookController {
     return this.bookService.create(dto);
   }
 
+  // 🔓 PUBLIK (TIDAK PERLU LOGIN)
   @Get()
-  @ApiOperation({ summary: 'Menampilkan seluruh data buku atau pencarian spesifik' })
-  // Menambahkan info di Swagger bahwa kolom ini boleh kosong
-  @ApiQuery({ name: 'id', required: false, type: String, description: 'Kosongkan jika ingin ambil semua' })
-  @ApiQuery({ name: 'title', required: false, type: String, description: 'Kosongkan jika ingin ambil semua' })
+  @ApiOperation({ summary: 'Menampilkan seluruh data buku atau pencarian spesifik (Publik)' })
+  @ApiQuery({ name: 'id', required: false, description: 'Kosongkan jika ingin ambil semua' })
+  @ApiQuery({ name: 'title', required: false, description: 'Kosongkan jika ingin ambil semua' })
   findAll(
     @Query('id') id?: string,
     @Query('title') title?: string,
@@ -39,13 +40,16 @@ export class BookController {
     return this.bookService.findAll({ id, title });
   }
 
+  // 🔓 PUBLIK (TIDAK PERLU LOGIN)
   @Get(':id')
-  @ApiOperation({ summary: 'Menampilkan detail buku berdasarkan ID' })
+  @ApiOperation({ summary: 'Menampilkan detail buku berdasarkan ID (Publik)' })
   findOne(@Param('id') id: string) {
     return this.bookService.findOne(Number(id));
   }
 
-  @UseGuards(RolesGuard)
+  // 🔒 HANYA ADMIN & PETUGAS (WAJIB LOGIN)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.PETUGAS)
   @Put(':id')
   @ApiOperation({ summary: 'Mengupdate buku (ADMIN & PETUGAS)' })
@@ -53,7 +57,9 @@ export class BookController {
     return this.bookService.update(Number(id), dto);
   }
 
-  @UseGuards(RolesGuard)
+  // 🔒 HANYA ADMIN (WAJIB LOGIN)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Delete(':id')
   @ApiOperation({ summary: 'Menghapus buku (ADMIN only)' })
