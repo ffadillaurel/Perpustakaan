@@ -1,4 +1,6 @@
-import {  Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards,} from '@nestjs/common';
+import { 
+  Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards 
+} from '@nestjs/common';
 import { BooksService } from './book.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
@@ -8,16 +10,15 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('Books')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard) // semua endpoint minimal harus login
+@UseGuards(JwtAuthGuard)
 @Controller('book')
 export class BookController {
   constructor(private readonly bookService: BooksService) { }
 
-  // 🔒 ADMIN & PETUGAS
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.PETUGAS)
   @Post()
@@ -26,9 +27,11 @@ export class BookController {
     return this.bookService.create(dto);
   }
 
-  // 🔓 Semua user login boleh lihat buku
   @Get()
-  @ApiOperation({ summary: 'Menampilkan seluruh data buku' })
+  @ApiOperation({ summary: 'Menampilkan seluruh data buku atau pencarian spesifik' })
+  // Menambahkan info di Swagger bahwa kolom ini boleh kosong
+  @ApiQuery({ name: 'id', required: false, type: String, description: 'Kosongkan jika ingin ambil semua' })
+  @ApiQuery({ name: 'title', required: false, type: String, description: 'Kosongkan jika ingin ambil semua' })
   findAll(
     @Query('id') id?: string,
     @Query('title') title?: string,
@@ -36,14 +39,12 @@ export class BookController {
     return this.bookService.findAll({ id, title });
   }
 
-  // 🔓 Semua user login boleh lihat detail
   @Get(':id')
   @ApiOperation({ summary: 'Menampilkan detail buku berdasarkan ID' })
   findOne(@Param('id') id: string) {
     return this.bookService.findOne(Number(id));
   }
 
-  // 🔒 ADMIN & PETUGAS
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.PETUGAS)
   @Put(':id')
@@ -52,7 +53,6 @@ export class BookController {
     return this.bookService.update(Number(id), dto);
   }
 
-  // 🔒 ADMIN ONLY
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Delete(':id')
