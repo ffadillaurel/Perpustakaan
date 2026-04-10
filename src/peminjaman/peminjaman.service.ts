@@ -17,30 +17,36 @@ export class PeminjamanService {
     const masihDipinjam = await this.prisma.peminjaman.findFirst({
       where: { bookId: dto.bookId, status: 'DIPINJAM' },
     });
-    if (masihDipinjam) throw new BadRequestException('Buku masih dipinjam');
+    if (masihDipinjam) throw new BadRequestException('Buku ini sedang dalam status DIPINJAM');
 
     return this.prisma.peminjaman.create({ data: dto });
   }
 
-  findAll(tanggal?: string) {
-  return this.prisma.peminjaman.findMany({
-    where: tanggal
-      ? {
-          tanggalPinjam: {
-            gte: new Date(tanggal),
-            lt: new Date(new Date(tanggal).setDate(new Date(tanggal).getDate() + 1)),
-          },
-        }
-      : {},
-    include: {
-      student: true,
-      book: true,
-      pengembalian: true,
-    },
-    orderBy: { id: 'asc' },
-  });
-}
+  async findAll(tanggal?: string) {
+    const where: any = {};
 
+    // PERBAIKAN: Cek apakah tanggal ada dan tidak kosong
+    if (tanggal && tanggal.trim() !== '') {
+      const startDate = new Date(tanggal);
+      const endDate = new Date(tanggal);
+      endDate.setDate(endDate.getDate() + 1);
+
+      where.tanggalPinjam = {
+        gte: startDate,
+        lt: endDate,
+      };
+    }
+
+    return this.prisma.peminjaman.findMany({
+      where,
+      include: {
+        student: true,
+        book: true,
+        pengembalian: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+  }
 
   async findOne(id: number) {
     const data = await this.prisma.peminjaman.findUnique({
